@@ -111,8 +111,8 @@ export default function LoginPage() {
         {mode === "signin" && (
           <div className="mt-6 pt-4 border-t border-surface-dim text-center">
             <p className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Demo Credentials</p>
-            <p className="text-[14px] text-on-surface">Email: <span className="font-mono text-primary">admin@budgetplanner.local</span></p>
-            <p className="text-[14px] text-on-surface">Password: <span className="font-mono text-primary">AdminPassword123!</span></p>
+            <p className="text-[14px] text-on-surface">Email: <span className="font-mono text-primary">admin@test.com</span></p>
+            <p className="text-[14px] text-on-surface">Password: <span className="font-mono text-primary">admin123</span></p>
           </div>
         )}
 

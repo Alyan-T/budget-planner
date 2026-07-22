@@ -28,8 +28,8 @@ This project was built from the ground up using **Claude** and **Antigravity** (
 
 The project is deployed and live. You can test the platform using the following demo credentials:
 
-- **Email**: `admin@budgetplanner.local`
-- **Password**: `AdminPassword123!`
+- **Email**: `admin@test.com`
+- **Password**: `admin123`
 
 ## 💻 Local Setup
 
