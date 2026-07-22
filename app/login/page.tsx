@@ -108,7 +108,15 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-surface-dim text-center">
+        {mode === "signin" && (
+          <div className="mt-6 pt-4 border-t border-surface-dim text-center">
+            <p className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Demo Credentials</p>
+            <p className="text-[14px] text-on-surface">Email: <span className="font-mono text-primary">admin@budgetplanner.local</span></p>
+            <p className="text-[14px] text-on-surface">Password: <span className="font-mono text-primary">AdminPassword123!</span></p>
+          </div>
+        )}
+
+        <div className="mt-4 pt-4 border-t border-surface-dim text-center">
           <button
             onClick={() => {
               setMode(mode === "signin" ? "signup" : "signin");
@@ -119,14 +127,6 @@ export default function LoginPage() {
             {mode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
           </button>
         </div>
-
-        {mode === "signin" && (
-          <div className="mt-6 pt-6 border-t border-surface-dim text-center">
-            <p className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Demo Credentials</p>
-            <p className="text-[14px] text-on-surface">Email: <span className="font-mono text-primary">admin@budgetplanner.local</span></p>
-            <p className="text-[14px] text-on-surface">Password: <span className="font-mono text-primary">AdminPassword123!</span></p>
-          </div>
-        )}
       </div>
     </div>
   );
