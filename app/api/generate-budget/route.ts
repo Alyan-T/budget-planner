@@ -47,7 +47,7 @@ Provide realistic PKR estimates for Pakistan.`;
     // Parse the JSON
     let parsed;
     try {
-      parsed = JSON.parse(text.trim());
+      parsed = JSON.parse(String(text).trim());
     } catch (e) {
       console.error("AI JSON parse error:", e, text);
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
