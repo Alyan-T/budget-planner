@@ -1,5 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createClient } from "@/lib/supabase/server";
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/mongodb";
+import { getCurrentUser } from "@/lib/auth";
+import { getCategoryMap, attachCategories } from "@/lib/queries";
+import type { TransactionDoc } from "@/lib/models";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 
@@ -12,35 +16,39 @@ export type InsightsResult = { insights: string[]; suggestion: string };
  * only needs to be maintained in one place.
  */
 export async function getInsightsForCurrentUser(): Promise<InsightsResult> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return { insights: [], suggestion: "" };
+
+  const db = await getDb();
+  const userId = new ObjectId(user.userId);
 
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select("amount, occurred_at, categories(name, type)")
-    .eq("user_id", user.id)
-    .gte("occurred_at", threeMonthsAgo.toISOString().slice(0, 10));
+  const rawTransactions = await db
+    .collection<TransactionDoc>("transactions")
+    .find({ userId, occurredAt: { $gte: threeMonthsAgo } })
+    .toArray();
 
-  if (!transactions || transactions.length < 3) {
+  if (rawTransactions.length < 3) {
     return { insights: [], suggestion: "" };
   }
+
+  const categoryMap = await getCategoryMap(db, userId);
+  const transactions = attachCategories(rawTransactions, categoryMap);
 
   // deterministic math in code — AI only narrates
   const byMonth: Record<string, { income: number; expense: number }> = {};
   const byCategory: Record<string, number> = {};
 
-  transactions.forEach((t: any) => {
-    const m = t.occurred_at.slice(0, 7);
+  transactions.forEach((t) => {
+    const m = t.occurredAt.toISOString().slice(0, 7);
     byMonth[m] ??= { income: 0, expense: 0 };
-    if (t.categories?.type === "income") byMonth[m].income += t.amount;
+    if (t.category?.type === "income") byMonth[m].income += t.amount;
     else {
       byMonth[m].expense += t.amount;
-      byCategory[t.categories?.name ?? "Uncategorized"] =
-        (byCategory[t.categories?.name ?? "Uncategorized"] || 0) + t.amount;
+      const name = t.category?.name ?? "Uncategorized";
+      byCategory[name] = (byCategory[name] || 0) + t.amount;
     }
   });
 

@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #f4f4f5; /* zinc-100 */
+    --on-background: #09090b; /* zinc-950 */
+    
+    --surface: #ffffff; /* white */
+    --surface-dim: #e4e4e7; /* zinc-200 */
+    --surface-bright: #f4f4f5; /* zinc-100 */
+    
+    --on-surface: #18181b; /* zinc-900 */
+    --on-surface-variant: #52525b; /* zinc-600 */
+    
+    --primary: #4f46e5; /* indigo-600 - attractive modern accent */
+    --on-primary: #ffffff; /* white */
+    
+    --success: #16a34a; /* green-600 */
+    --success-bg: #dcfce7; /* green-100 */
+    --on-success: #000000;
+    
+    --error: #dc2626; /* red-600 */
+    --error-bg: #fee2e2; /* red-100 */
+    --on-error: #000000;
+  }
+
+  .dark {
+    --background: #09090b; /* zinc-950 */
+    --on-background: #fafafa;
+    
+    --surface: #18181b; /* zinc-900 */
+    --surface-dim: #27272a; /* zinc-800 */
+    --surface-bright: #3f3f46; /* zinc-700 */
+    
+    --on-surface: #f4f4f5;
+    --on-surface-variant: #a1a1aa; /* zinc-400 */
+    
+    --primary: #ffffff;
+    --on-primary: #000000;
+    
+    --success: #22c55e; /* emerald-500 */
+    --success-bg: #052e16; /* emerald-950 */
+    --on-success: #ffffff;
+    
+    --error: #ef4444; /* red-500 */
+    --error-bg: #450a0a; /* red-950 */
+    --on-error: #ffffff;
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--on-background);
+  }
+}

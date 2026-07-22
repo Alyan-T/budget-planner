@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
-const COLORS = ["#7F77DD", "#1D9E75", "#D85A30", "#D4537E", "#378ADD", "#EF9F27"];
+const COLORS = ["#00F2FE", "#4FACFE", "#FF0844", "#00E676", "#FF9100", "#D500F9"];
 
 export function CategoryPieChart({
   data,
@@ -19,7 +19,11 @@ export function CategoryPieChart({
             <Cell key={i} fill={COLORS[i % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
+        <Tooltip 
+          formatter={(v: number) => `Rs. ${v.toLocaleString()}`} 
+          contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '12px', color: '#fff' }}
+          itemStyle={{ color: '#fff' }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );

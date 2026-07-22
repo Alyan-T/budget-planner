@@ -1,47 +1,52 @@
 # Budget Planner
 
-An AI-assisted budget planner built with Next.js (App Router) and Supabase Cloud.
-Type transactions in plain English ("Spent $15 on gas"), see spending by
-category, track a monthly budget, and get AI-generated spending insights.
+An AI-assisted budget planner built with Next.js (App Router), MongoDB
+Atlas, and custom email/password authentication. Type transactions in plain
+English ("Spent $15 on gas"), see spending by category, track a monthly
+budget, and get AI-generated spending insights.
 
 ## Stack
 
 - **Next.js 14** (App Router, Server Components)
-- **Supabase Cloud** — Postgres database, auth, and Row Level Security
-- **Google Gemini** (`gemini-2.0-flash`) — parses natural-language transactions
-  and writes short insight summaries; all math (totals, ratios, projections)
-  is deterministic JS, not AI-generated
+- **MongoDB Atlas** — document database (no ORM, raw `mongodb` driver)
+- **Custom auth** — email/password with `bcryptjs` password hashing and
+  `jose` (edge-compatible) JWTs stored in an httpOnly cookie. No third-party
+  auth service.
+- **Google Gemini** (`gemini-2.0-flash`) — parses natural-language
+  transactions and writes short insight summaries; all math (totals, ratios,
+  projections) is deterministic JS, not AI-generated
 - **Tailwind CSS** for styling, **Recharts** for charts
 
-## 1. Create a Supabase project
+## 1. Set up MongoDB Atlas
 
-1. Go to https://supabase.com and create a new project.
-2. In the SQL editor, run everything in [`supabase/schema.sql`](./supabase/schema.sql).
-   This creates the `categories`, `transactions`, and `budgets` tables and
-   enables Row Level Security so each user can only read/write their own rows.
-3. In **Authentication > Providers**, make sure Email is enabled (it is by default).
-4. Grab your **Project URL** and **anon public key** from
-   **Project Settings > API**.
+See [`MONGODB_SETUP.md`](./MONGODB_SETUP.md) for step-by-step cluster
+creation, network access, and the connection string.
 
 ## 2. Get a Gemini API key
 
 Create a key at https://aistudio.google.com/app/apikey.
 
-## 3. Configure environment variables
+## 3. Generate a JWT secret
 
-Copy the example file and fill in your values:
+```bash
+openssl rand -base64 32
+```
+(Any long random string works — this signs session tokens.)
+
+## 4. Configure environment variables
 
 ```bash
 cp .env.local.example .env.local
 ```
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+MONGODB_URI=your-mongodb-connection-string
+MONGODB_DB=budget_planner
+JWT_SECRET=your-random-secret-string
 GOOGLE_API_KEY=your-gemini-api-key
 ```
 
-## 4. Install and run
+## 5. Install and run
 
 ```bash
 npm install
@@ -49,65 +54,67 @@ npm run dev
 ```
 
 Visit http://localhost:3000 — you'll be redirected to `/login`. Sign up with
-any email/password (Supabase's default email confirmation may apply depending
-on your project's auth settings).
-
-## 5. Add some categories
-
-The transaction parser matches free text against your existing categories, so
-add a few first. Easiest way for now: insert rows directly in the Supabase
-table editor for `categories`, e.g.:
-
-| user_id           | name          | type    |
-|-------------------|---------------|---------|
-| (your auth uid)   | Salary        | income  |
-| (your auth uid)   | Groceries     | expense |
-| (your auth uid)   | Gas           | expense |
-| (your auth uid)   | Rent          | expense |
-| (your auth uid)   | Entertainment | expense |
-
-(There's a commented-out `insert` template for this at the bottom of
-`supabase/schema.sql`.)
+any email/password; a session cookie is set immediately and five default
+categories (Salary, Groceries, Gas, Rent, Entertainment) are created for you
+automatically so the transaction parser has something to match against.
 
 ## 6. Add budgets (optional)
 
-To see the budgets page populated, insert rows into `budgets` for the current
-month, e.g. `month = '2026-07-01'`, tied to a `category_id` and a `limit_amount`.
+To see the budgets page populated, insert a document into the `budgets`
+collection for the current month, tied to a `categoryId` (from your
+`categories` collection) and a `limitAmount`. `month` must be a `Date` set
+to the 1st of the month at midnight UTC, matching how the app queries it.
+
+## Deploying to Vercel
+
+1. Push to GitHub, import the repo at https://vercel.com/new.
+2. Add `MONGODB_URI`, `MONGODB_DB`, `JWT_SECRET`, `GOOGLE_API_KEY` under
+   Project Settings → Environment Variables.
+3. In MongoDB Atlas → Network Access, make sure Vercel's traffic is allowed
+   (see `MONGODB_SETUP.md` for the tradeoffs of `0.0.0.0/0`).
+4. Redeploy after adding env vars — Vercel doesn't retroactively apply them
+   to an already-built deployment.
 
 ## Project structure
 
 ```
 budget-planner/
-├── middleware.ts              # refreshes Supabase session, protects routes
+├── middleware.ts               # verifies session JWT (edge-compatible), protects routes
 ├── lib/
-│   ├── supabase/{client,server,middleware}.ts
-│   └── insights.ts            # shared AI-insights logic (used by page + API route)
+│   ├── mongodb.ts              # cached MongoDB client
+│   ├── auth.ts                 # password hashing, JWT sign/verify, getCurrentUser()
+│   ├── models.ts                # TypeScript types for each collection
+│   ├── queries.ts              # shared category-lookup / join helpers
+│   └── insights.ts             # shared AI-insights logic (used by page + API route)
 ├── app/
 │   ├── layout.tsx / globals.css / page.tsx
 │   ├── login/page.tsx
-│   ├── auth/callback/route.ts
 │   ├── dashboard/page.tsx
 │   ├── transactions/page.tsx
 │   ├── budgets/page.tsx
 │   └── api/
-│       ├── parse-transaction/route.ts   # NL transaction -> structured row
+│       ├── auth/{signup,login,logout}/route.ts
+│       ├── parse-transaction/route.ts   # NL transaction -> structured document
 │       ├── insights/route.ts            # thin wrapper over lib/insights.ts
 │       └── forecast/route.ts            # deterministic end-of-month projection
 ├── components/
 │   ├── NavBar.tsx, TransactionInput.tsx, TransactionList.tsx
 │   ├── CategoryPieChart.tsx, TrendChart.tsx
 │   └── BudgetProgress.tsx, InsightsCard.tsx
-└── supabase/schema.sql        # tables + RLS policies
+└── MONGODB_SETUP.md             # cluster setup + recommended indexes
 ```
 
 ## Notes
 
-- Row Level Security means that even if a query has a bug, one user cannot
-  read another user's rows — enforced at the database level, not just in
-  application code.
-- The dashboard originally fetched `/api/insights` over HTTP from a Server
-  Component, which is awkward because you'd need to forward auth cookies
-  manually. This build instead extracts that logic into `lib/insights.ts` and
-  imports it directly in `app/dashboard/page.tsx`; `app/api/insights/route.ts`
-  is kept as a thin public wrapper around the same function for any client-side
-  or external use.
+- **No Row Level Security equivalent.** MongoDB has nothing like Postgres
+  RLS — every query in this app filters explicitly by `userId` in
+  application code. See the "Note on per-user data isolation" section in
+  `MONGODB_SETUP.md` before adding new queries.
+- **Why `jose` instead of `jsonwebtoken`:** Next.js middleware runs on the
+  Edge runtime, which doesn't support Node's `crypto` module that
+  `jsonwebtoken` depends on. `jose` works in both the Node runtime (API
+  routes) and the Edge runtime (middleware), so it's used everywhere for
+  consistency.
+- Login and signup return the same generic "Invalid email or password"
+  error rather than distinguishing "no such user" from "wrong password" —
+  this avoids leaking which emails have accounts.
